@@ -99,7 +99,11 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container d-flex justify-content-end align-items-center">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}" style="text-decoration: none;">
+            <i class="bi bi-journal-text" style="font-size: 1.5rem;"></i>
+            <span>Beleške</span>
+        </a>
         <button id="theme-toggle" class="btn btn-outline-light btn-sm" type="button">
             Tamni mod
         </button>
