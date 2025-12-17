@@ -8,6 +8,7 @@ Skripta za automatski deploy na PythonAnywhere
 import os
 import subprocess
 import sys
+import argparse
 import requests
 from getpass import getpass
 
@@ -67,34 +68,71 @@ def reload_pythonanywhere(username, api_token):
         print(f"❌ Greška pri API pozivu: {e}")
         return False
 
+def safe_input(prompt, default=None):
+    """Bezbedan input koji radi i u non-interactive modu"""
+    try:
+        return input(prompt)
+    except (EOFError, KeyboardInterrupt):
+        return default if default else ""
+
 def main():
+    parser = argparse.ArgumentParser(description='Deploy aplikacije na PythonAnywhere')
+    parser.add_argument('-m', '--message', help='Commit poruka', default='Auto-deploy from Cursor')
+    parser.add_argument('-y', '--yes', action='store_true', help='Automatski potvrdi sve (non-interactive)')
+    parser.add_argument('--no-reload', action='store_true', help='Ne reload-uj aplikaciju')
+    args = parser.parse_args()
+    
     print("🚀 PythonAnywhere Auto-Deploy\n")
     
     # Proveri Git status
     changes = get_git_status()
     if not changes:
         print("ℹ️  Nema promena za commit")
-        response = input("Da li želiš da reload-uješ aplikaciju bez commit-a? (y/n): ")
-        if response.lower() != 'y':
-            return
+        if not args.yes:
+            response = safe_input("Da li želiš da reload-uješ aplikaciju bez commit-a? (y/n): ", "n")
+            if response.lower() != 'y':
+                return
     else:
         print(f"📝 Pronađene promene:\n{changes}\n")
-        response = input("Da li želiš da commit-uješ i push-uješ promene? (y/n): ")
-        if response.lower() == 'y':
-            message = input("Unesi commit poruku (Enter za default): ").strip()
-            if not message:
-                message = "Auto-deploy from Cursor"
+        if args.yes:
+            should_commit = True
+        else:
+            response = safe_input("Da li želiš da commit-uješ i push-uješ promene? (y/n): ", "n")
+            should_commit = response.lower() == 'y'
+        
+        if should_commit:
+            if not args.yes:
+                message = safe_input("Unesi commit poruku (Enter za default): ", args.message)
+                if not message:
+                    message = args.message
+            else:
+                message = args.message
+            
             if not commit_and_push(message):
                 return
     
     # PythonAnywhere reload
+    if args.no_reload:
+        print("⏭️  Preskačem reload (--no-reload flag)")
+        return
+    
     username = os.environ.get('PYTHONANYWHERE_USERNAME')
     api_token = os.environ.get('PYTHONANYWHERE_API_TOKEN')
     
     if not username:
-        username = input("Unesi PythonAnywhere username: ").strip()
+        if args.yes:
+            print("⚠️  PYTHONANYWHERE_USERNAME nije postavljen. Preskačem reload.")
+            return
+        username = safe_input("Unesi PythonAnywhere username: ", "")
     if not api_token:
-        api_token = getpass("Unesi PythonAnywhere API token: ")
+        if args.yes:
+            print("⚠️  PYTHONANYWHERE_API_TOKEN nije postavljen. Preskačem reload.")
+            return
+        try:
+            api_token = getpass("Unesi PythonAnywhere API token: ")
+        except (EOFError, KeyboardInterrupt):
+            print("\n⚠️  API token nije unet. Preskačem reload.")
+            return
     
     if username and api_token:
         # Reload aplikacije
@@ -112,7 +150,7 @@ def main():
         print("\n💡 Za automatski reload, postavi environment varijable:")
         print("   PYTHONANYWHERE_USERNAME=toxicraf")
         print("   PYTHONANYWHERE_API_TOKEN=your_token_here")
-        print("\n   Ili pokreni skriptu ponovo i unesi ih interaktivno.")
+        print("\n   Ili pokreni sa: python deploy.py -y")
 
 if __name__ == "__main__":
     main()
