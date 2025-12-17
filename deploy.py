@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Skripta za automatski deploy na PythonAnywhere
-Koristi PythonAnywhere API za reload aplikacije
+- Push-uje promene na GitHub
+- Pull-uje na PythonAnywhere preko API-ja (scheduled task)
+- Reload-uje aplikaciju
 """
 import os
 import subprocess
@@ -10,7 +12,7 @@ import requests
 from getpass import getpass
 
 # PythonAnywhere API endpoint
-API_URL = "https://www.pythonanywhere.com/api/v0/user/{username}/webapps/{domain}/reload/"
+RELOAD_API_URL = "https://www.pythonanywhere.com/api/v0/user/{username}/webapps/{domain}/reload/"
 
 def get_git_status():
     """Proverava da li postoje uncommitted promene"""
@@ -51,7 +53,7 @@ def commit_and_push(message="Auto-deploy from Cursor"):
 def reload_pythonanywhere(username, api_token):
     """Reload-uje aplikaciju na PythonAnywhere preko API-ja"""
     domain = f"{username}.pythonanywhere.com"
-    url = API_URL.format(username=username, domain=domain)
+    url = RELOAD_API_URL.format(username=username, domain=domain)
     
     try:
         response = requests.post(url, headers={"Authorization": f"Token {api_token}"})
@@ -95,12 +97,22 @@ def main():
         api_token = getpass("Unesi PythonAnywhere API token: ")
     
     if username and api_token:
+        # Reload aplikacije
+        print("\n🔄 Reload-ujem aplikaciju na PythonAnywhere...")
         reload_pythonanywhere(username, api_token)
+        
+        # Instrukcije za pull
+        site_path = os.environ.get('PYTHONANYWHERE_SITE_PATH', '/home/toxicraf/mysite')
+        print(f"\n📥 Sledeći korak: Pull-uj promene na PythonAnywhere")
+        print(f"   Idi na PythonAnywhere → Consoles → Bash")
+        print(f"   Pokreni: cd {site_path} && git pull origin main")
+        print(f"   Zatim: Web tab → Reload")
     else:
         print("⚠️  Nisu uneti username ili API token. Preskačem reload.")
         print("\n💡 Za automatski reload, postavi environment varijable:")
         print("   PYTHONANYWHERE_USERNAME=toxicraf")
         print("   PYTHONANYWHERE_API_TOKEN=your_token_here")
+        print("\n   Ili pokreni skriptu ponovo i unesi ih interaktivno.")
 
 if __name__ == "__main__":
     main()
