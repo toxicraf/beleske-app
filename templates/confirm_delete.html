@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="h4 mb-3">Obriši belešku #{{ note['id'] }}</h1>
+
+<div class="alert alert-warning">
+    Da li sigurno želiš da obrišeš ovu belešku? Ova akcija se ne može opozvati.
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-subtitle mb-2 text-muted">
+            Kreirano: {{ note['date_created'] | format_datetime }}
+        </h6>
+        <p class="card-text mb-0">{{ note['note'] }}</p>
+    </div>
+</div>
+
+<form method="post" class="d-flex gap-2">
+    <a href="{{ url_for('note_detail', note_id=note['id']) }}" class="btn btn-secondary">Otkaži</a>
+    <button type="submit" class="btn btn-danger">Obriši</button>
+</form>
+{% endblock %}
+
+
+

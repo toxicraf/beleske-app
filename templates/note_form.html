@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="h3 mb-3">{{ action }}</h1>
+
+<form method="post" class="card p-3">
+    <div class="mb-3">
+        <label for="note" class="form-label">Beleška (maksimalno 255 karaktera)</label>
+        <textarea
+            id="note"
+            name="note"
+            class="form-control"
+            rows="4"
+            maxlength="255"
+            required
+        >{{ (note['note'] if note else '') }}</textarea>
+        <div class="form-text">Preostalo karaktera: <span id="char-count">255</span></div>
+    </div>
+    <div class="d-flex justify-content-between">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Nazad</a>
+        <button type="submit" class="btn btn-primary">
+            {% if action == 'Nova beleška' %}
+                Sačuvaj
+            {% else %}
+                {{ action }}
+            {% endif %}
+        </button>
+    </div>
+</form>
+
+<script>
+    const textarea = document.getElementById('note');
+    const counter = document.getElementById('char-count');
+
+    function updateCount() {
+        const remaining = 255 - textarea.value.length;
+        counter.textContent = remaining;
+    }
+
+    textarea.addEventListener('input', updateCount);
+    updateCount();
+</script>
+{% endblock %}
+
+
+

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Beleške</h1>
+    <a href="{{ url_for('create_note') }}" class="btn btn-primary">Nova beleška</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="page" value="1">
+    <div class="col-sm-8 col-md-6 col-lg-4">
+        <input
+            type="text"
+            name="q"
+            value="{{ q }}"
+            class="form-control"
+            placeholder="Filtriraj po tekstu"
+        >
+    </div>
+    <div class="col-auto d-flex gap-2">
+        <button type="submit" class="btn btn-outline-primary">Primeni filter</button>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Resetuj filter</a>
+    </div>
+</form>
+
+{% if notes %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Beleška</th>
+                <th scope="col" style="width: 1%; white-space: nowrap;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span>Datum kreiranja</span>
+                        <div class="d-flex flex-column" style="line-height: 0.8;">
+                            <a href="{{ url_for('index', sort='asc', q=q, page=1) }}" 
+                               class="text-decoration-none sort-icon {% if sort == 'asc' %}text-primary fw-bold{% else %}text-muted{% endif %}"
+                               title="Sortiraj rastuće"
+                               style="font-size: 1.2em; transition: all 0.2s; display: inline-block;">
+                                <i class="bi bi-arrow-up-short"></i>
+                            </a>
+                            <a href="{{ url_for('index', sort='desc', q=q, page=1) }}" 
+                               class="text-decoration-none sort-icon {% if sort == 'desc' %}text-primary fw-bold{% else %}text-muted{% endif %}"
+                               title="Sortiraj opadajuće"
+                               style="font-size: 1.2em; transition: all 0.2s; display: inline-block;">
+                                <i class="bi bi-arrow-down-short"></i>
+                            </a>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for note in notes %}
+                <tr onclick="window.location='{{ url_for('note_detail', note_id=note['id']) }}'" style="cursor:pointer;">
+                    <td>{{ note['id'] }}</td>
+                    <td>
+                        {% set lines = note['note'] | preview_split(100) %}
+                        {% for line in lines %}
+                            {{ line }}{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>{{ note['date_created'] | format_datetime }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if total_count and total_count > 0 %}
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark pagination-navbar">
+            <div class="container d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Prikazano <strong>{{ ((page|default(1) - 1) * per_page|default(20)) + 1 }}</strong> - 
+                    <strong>{{ [page|default(1) * per_page|default(20), total_count] | min }}</strong> od 
+                    <strong>{{ total_count }}</strong> beleški
+                </div>
+                
+                {% if total_pages > 1 %}
+                    <nav aria-label="Paginacija">
+                        <ul class="pagination mb-0">
+                            {# Prethodna stranica #}
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" 
+                                   href="{{ url_for('index', page=page-1, sort=sort, q=q) if page > 1 else '#' }}"
+                                   aria-label="Prethodna">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            
+                            {# Brojevi stranica #}
+                            {% set start_page = [1, page - 2] | max %}
+                            {% set end_page = [total_pages, page + 2] | min %}
+                            
+                            {% if start_page > 1 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('index', page=1, sort=sort, q=q) }}">1</a>
+                                </li>
+                                {% if start_page > 2 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% for p in range(start_page, end_page + 1) %}
+                                <li class="page-item {% if p == page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('index', page=p, sort=sort, q=q) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+                            
+                            {% if end_page < total_pages %}
+                                {% if end_page < total_pages - 1 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('index', page=total_pages, sort=sort, q=q) }}">{{ total_pages }}</a>
+                                </li>
+                            {% endif %}
+                            
+                            {# Sledeća stranica #}
+                            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" 
+                                   href="{{ url_for('index', page=page+1, sort=sort, q=q) if page < total_pages else '#' }}"
+                                   aria-label="Sledeća">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                {% endif %}
+            </div>
+        </nav>
+    {% endif %}
+{% else %}
+    <p class="text-muted">Još nema beleški. Klikni na "Nova beleška" da dodaš.</p>
+{% endif %}
+{% endblock %}
+
+
+
